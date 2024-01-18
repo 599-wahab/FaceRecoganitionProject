@@ -45,10 +45,10 @@ def process_frames():
         success, img = cap.read()
         success1, img1 = cap1.read()
 
-        imgS = cv2.resize(img, (0, 0), None, 0.25, 0.25)
+        imgS = cv2.resize(img, (0, 0), None, 0.5, 0.5)  # Increase resolution
         imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
 
-        imgS1 = cv2.resize(img1, (0, 0), None, 0.25, 0.25)
+        imgS1 = cv2.resize(img1, (0, 0), None, 0.5, 0.5)  # Increase resolution
         imgS1 = cv2.cvtColor(imgS1, cv2.COLOR_BGR2RGB)
 
         if frame_count % skip_frames == 0:
@@ -62,7 +62,7 @@ def process_frames():
 
             # Draw boxes around faces in the first camera frame and display names
             for encodeFace, faceLoc in zip(encodeCurFrame, faceCurFrame):
-                matches = face_recognition.compare_faces(encodeListKnow, encodeFace)
+                matches = face_recognition.compare_faces(encodeListKnow, encodeFace, tolerance=0.6)  # Adjust tolerance
                 faceDis = face_recognition.face_distance(encodeListKnow, encodeFace)
 
                 if len(faceDis) > 0:
@@ -71,14 +71,14 @@ def process_frames():
                         name = classNames[matchIndex].upper()
 
                         y1, x2, y2, x1 = faceLoc
-                        cv2.rectangle(img, (x1 * 4, y1 * 4), (x2 * 4, y2 * 4), (128, 0, 128), 2)
+                        cv2.rectangle(img, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
                     else:
                         name = "Unknown"
 
             # Draw boxes around faces in the second camera frame and display names
             for encodeFace, faceLoc in zip(encodeCurFrame1, faceCurFrame1):
-                matches = face_recognition.compare_faces(encodeListKnow, encodeFace)
+                matches = face_recognition.compare_faces(encodeListKnow, encodeFace, tolerance=0.6)  # Adjust tolerance
                 faceDis = face_recognition.face_distance(encodeListKnow, encodeFace)
 
                 if len(faceDis) > 0:
@@ -87,7 +87,7 @@ def process_frames():
                         name = classNames[matchIndex].upper()
 
                         y1, x2, y2, x1 = faceLoc
-                        cv2.rectangle(img1, (x1 * 4, y1 * 4), (x2 * 4, y2 * 4), (128, 0, 128), 2)
+                        cv2.rectangle(img1, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img1, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
                     else:
                         name = "Unknown"
