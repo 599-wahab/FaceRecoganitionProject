@@ -4,11 +4,16 @@ import face_recognition
 import os
 import time
 import threading
+import winsound
 
 path = 'ImageAttendance'
 imgs = []
 classNames = []
 myList = os.listdir(path)
+
+frequency = 2000  # Set the frequency in Hertz
+duration = 100 # Set the duration in milliseconds
+
 print(myList)
 
 for c1 in myList:
@@ -30,15 +35,20 @@ def findEncodings(imgs):
 encodeListKnow = findEncodings(imgs)
 print(len(encodeListKnow))
 
-cap = cv2.VideoCapture(1)
-cap1 = cv2.VideoCapture(0)
+# Initialize capture devices within the process_frames function
+cap = None
+cap1 = None
 
 # Frame Skipping
-skip_frames = 3
+skip_frames = 5
 frame_count = 0
 
 def process_frames():
-    global frame_count
+    global frame_count, cap, cap1
+    # Initialize capture devices within the thread
+    cap = cv2.VideoCapture(1)
+    cap1 = cv2.VideoCapture(0)
+
     while True:
         start_time = time.time()
 
@@ -73,8 +83,19 @@ def process_frames():
                         y1, x2, y2, x1 = faceLoc
                         cv2.rectangle(img, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
+                        accuracy = 1 - faceDis[matchIndex]
+                        print(f"Person: {name}, Accuracy: {accuracy}")
+
+                        winsound.Beep(frequency, duration)
+
                     else:
                         name = "Unknown"
+                        y1, x2, y2, x1 = faceLoc
+                        cv2.rectangle(img, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (0, 0, 255), 2)  # Red box
+                        cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+                        print(f"Person: {name}, Accuracy: Unknown")
+
+                        winsound.Beep(frequency, duration)
 
             # Draw boxes around faces in the second camera frame and display names
             for encodeFace, faceLoc in zip(encodeCurFrame1, faceCurFrame1):
@@ -89,8 +110,19 @@ def process_frames():
                         y1, x2, y2, x1 = faceLoc
                         cv2.rectangle(img1, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img1, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
+                        accuracy = 1 - faceDis[matchIndex]
+                        print(f"Person: {name}, Accuracy: {accuracy}")
+
+                        winsound.Beep(frequency, duration)
+
                     else:
                         name = "Unknown"
+                        y1, x2, y2, x1 = faceLoc
+                        cv2.rectangle(img1, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (0, 0, 255), 2)  # Red box
+                        cv2.putText(img1, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+                        print(f"Person: {name}, Accuracy: Unknown")
+                        
+                        winsound.Beep(frequency, duration)
 
             frame_processing_time = time.time() - start_time
             cv2.imshow('webcam', img)
@@ -101,6 +133,10 @@ def process_frames():
 
         frame_count += 1
 
+    # Release the capture devices within the thread
+    cap.release()
+    cap1.release()
+
 # Start a separate thread for processing frames
 thread = threading.Thread(target=process_frames)
 thread.start()
@@ -109,6 +145,4 @@ thread.start()
 thread.join()
 
 # Release the capture devices
-cap.release()
-cap1.release()
 cv2.destroyAllWindows()

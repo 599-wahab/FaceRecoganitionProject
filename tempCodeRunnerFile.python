@@ -34,7 +34,7 @@ cap = cv2.VideoCapture(1)
 cap1 = cv2.VideoCapture(0)
 
 # Frame Skipping
-skip_frames = 5
+skip_frames = 20  # Increased frame skipping for decreased load
 frame_count = 0
 
 def process_frames():
@@ -73,8 +73,15 @@ def process_frames():
                         y1, x2, y2, x1 = faceLoc
                         cv2.rectangle(img, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
+
+                        accuracy = 1 - faceDis[matchIndex]
+                        print(f"Person: {name}, Accuracy: {accuracy}")
                     else:
                         name = "Unknown"
+                        y1, x2, y2, x1 = faceLoc
+                        cv2.rectangle(img, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (0, 0, 255), 2)  # Red box
+                        cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+                        print(f"Person: {name}, Accuracy: Unknown")
 
             # Draw boxes around faces in the second camera frame and display names
             for encodeFace, faceLoc in zip(encodeCurFrame1, faceCurFrame1):
@@ -89,8 +96,15 @@ def process_frames():
                         y1, x2, y2, x1 = faceLoc
                         cv2.rectangle(img1, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (128, 0, 128), 2)
                         cv2.putText(img1, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
+
+                        accuracy = 1 - faceDis[matchIndex]
+                        print(f"Person: {name}, Accuracy: {accuracy}")
                     else:
                         name = "Unknown"
+                        y1, x2, y2, x1 = faceLoc
+                        cv2.rectangle(img1, (x1 * 2, y1 * 2), (x2 * 2, y2 * 2), (0, 0, 255), 2)  # Red box
+                        cv2.putText(img1, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+                        print(f"Person: {name}, Accuracy: Unknown")
 
             frame_processing_time = time.time() - start_time
             cv2.imshow('webcam', img)
