@@ -94,7 +94,8 @@ def process_frames():
         # Display the combined image
         cv2.imshow('Webcams', combined_image)
 
-        if cv2.waitKey(1) == ord('q'):
+        key = cv2.waitKey(1)
+        if key == ord('q'):
             break
 
         frame_processing_time = time.time() - start_time
@@ -104,6 +105,7 @@ def process_frames():
     cap1.release()
     cap2.release()
     cap3.release()
+    cv2.destroyAllWindows()
 
 def draw_boxes(img, encodings, locations):
     for encodeFace, faceLoc in zip(encodings, locations):
@@ -116,14 +118,14 @@ def draw_boxes(img, encodings, locations):
                 name = labels[matchIndex].upper()
                 y1, x2, y2, x1 = faceLoc
                 cv2.rectangle(img, (x1, y1), (x2, y2), (128, 0, 128), 2)
-                cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (128, 0, 128), 2)
+                cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (128, 0, 128), 1)
                 accuracy = 1 - faceDis[matchIndex]
                 print(f"Person: {name}, Accuracy: {accuracy}")
             else:
                 name = "Unknown"
                 y1, x2, y2, x1 = faceLoc
                 cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)  # Red box
-                cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(img, name, (x1 + 6, y2 - 6), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0, 0, 255), 1)
                 accuracy = 1 - faceDis[matchIndex]
                 print(f"Person: {name}, Accuracy: {accuracy}")
                 winsound.Beep(frequency, duration)
@@ -134,6 +136,3 @@ thread.start()
 
 # Wait for the thread to finish
 thread.join()
-
-# Release the capture devices
-cv2.destroyAllWindows()

@@ -2,6 +2,8 @@ import os
 import cv2
 import numpy as np
 import face_recognition
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 
 def load_images_from_folder(folder):
     images = []
@@ -31,22 +33,25 @@ def prepare_training_data(data_folder):
                         labels.append(person_name)
     return faces_encodings, labels
 
-data_folder = 'ImageAttendance'
-faces_encodings, labels = prepare_training_data(data_folder)
+data_folder = 'FaceRecognitionImgs'
+if os.path.exists(data_folder):
+    faces_encodings, labels = prepare_training_data(data_folder)
 
-# Now you have faces_encodings and labels to use for training a classifier, like SVM or KNN.
-# You can use faces_encodings as your X (features) and labels as your y (target).
+    if len(faces_encodings) == 0:
+        print("Error: No training data found.")
+    else:
+        # Now you have faces_encodings and labels to use for training a classifier, like SVM or KNN.
+        # You can use faces_encodings as your X (features) and labels as your y (target).
 
-# For example, you can use scikit-learn to train a classifier
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
+        # Split data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(faces_encodings, labels, test_size=0.2, random_state=42)
 
-X_train, X_test, y_train, y_test = train_test_split(faces_encodings, labels, test_size=0.2, random_state=42)
+        # Initialize and train SVM classifier
+        clf = SVC(kernel='linear', probability=True)
+        clf.fit(X_train, y_train)
 
-# Initialize and train SVM classifier
-clf = SVC(kernel='linear', probability=True)
-clf.fit(X_train, y_train)
-
-# Evaluate classifier
-accuracy = clf.score(X_test, y_test)
-print("Accuracy:", accuracy)
+        # Evaluate classifier
+        accuracy = clf.score(X_test, y_test)
+        print("Accuracy:", accuracy)
+else:
+    print("Error: Data folder not found.")
