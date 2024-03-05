@@ -3,6 +3,7 @@ import numpy as np
 import face_recognition
 import os
 import time
+
 import threading
 
 path = 'ImageAttendance'
