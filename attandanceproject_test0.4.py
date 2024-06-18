@@ -13,7 +13,7 @@ duration = 1300  # Set the duration in milliseconds
 def load_images_from_folder(folder):
     images = []
     for filename in os.listdir(folder):
-        img_path = os.path.join(folder, filename)
+        img_path = os.path.join(folder, filename) 
         if os.path.isfile(img_path):
             img = cv2.imread(img_path)
             if img is not None:
@@ -55,41 +55,35 @@ else:
 def process_frames():
     # Initialize capture devices within the thread
     cap = cv2.VideoCapture(0)
-    cap1 = cv2.VideoCapture(4)
-    cap2 = cv2.VideoCapture(1)
-    cap3 = cv2.VideoCapture(2)
+    cap1 = cv2.VideoCapture(1)
 
     while True:
         start_time = time.time()
 
         ret, img = cap.read()
         ret1, img1 = cap1.read()
-        ret2, img2 = cap2.read()
-        ret3, img3 = cap3.read()
 
-        if not (ret and ret1 and ret2 and ret3):
+        if not (ret and ret1):
             print("Error: Cannot read frames from cameras.")
             break
 
         # Convert images to RGB format for face recognition
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         rgb_img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        rgb_img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-        rgb_img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
 
         # Find all face locations and encodings in each frame
-        frames = [(rgb_img, img), (rgb_img1, img1), (rgb_img2, img2), (rgb_img3, img3)]
-        for rgb_frame, frame in frames:
-            face_locations = face_recognition.face_locations(rgb_frame, model='hog')  # Using HOG model
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+        face_locations = face_recognition.face_locations(rgb_img, model='hog')  # Using HOG model
+        face_encodings = face_recognition.face_encodings(rgb_img, face_locations)
 
-            # Draw boxes around faces and display names
-            draw_boxes(frame, face_encodings, face_locations)
+        face_locations1 = face_recognition.face_locations(rgb_img1, model='hog')  # Using HOG model
+        face_encodings1 = face_recognition.face_encodings(rgb_img1, face_locations1)
 
-        # Combine the four images into one grid
-        top_row = np.hstack((img, img1))
-        bottom_row = np.hstack((img2, img3))
-        combined_image = np.vstack((top_row, bottom_row))
+        # Draw boxes around faces and display names
+        draw_boxes(img, face_encodings, face_locations)
+        draw_boxes(img1, face_encodings1, face_locations1)
+
+        # Combine the two images into one grid
+        combined_image = np.hstack((img, img1))
 
         # Display the combined image
         cv2.imshow('Webcams', combined_image)
@@ -103,8 +97,6 @@ def process_frames():
     # Release the capture devices within the thread
     cap.release()
     cap1.release()
-    cap2.release()
-    cap3.release()
     cv2.destroyAllWindows()
 
 def draw_boxes(img, encodings, locations):

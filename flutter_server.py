@@ -1,14 +1,22 @@
+from flask import Flask, Response
 import cv2
-import numpy as np
 import face_recognition
-import os
-import time
 import threading
 import winsound
 import pickle
+import os
+import numpy as np
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Allow cross-origin requests
 
 frequency = 2300  # Set the frequency in Hertz
 duration = 1300  # Set the duration in milliseconds
+
+# Global variables for face recognition
+faces_encodings = []
+labels = []
 
 def load_images_from_folder(folder):
     images = []
@@ -21,6 +29,7 @@ def load_images_from_folder(folder):
     return images
 
 def prepare_training_data(data_folder):
+    global faces_encodings, labels
     labels = []
     faces_encodings = []
 
@@ -36,7 +45,6 @@ def prepare_training_data(data_folder):
                     if encodings:
                         faces_encodings.append(encodings[0])
                         labels.append(person_name)
-    return faces_encodings, labels
 
 # Check if trained model exists
 trained_model_file = 'trained_model.pkl'
@@ -47,67 +55,38 @@ if os.path.isfile(trained_model_file):
 else:
     # Prepare training data and train the model
     data_folder = 'FaceRecognitionImgs'
-    faces_encodings, labels = prepare_training_data(data_folder)
+    prepare_training_data(data_folder)
     # Save the trained model
     with open(trained_model_file, 'wb') as file:
         pickle.dump((faces_encodings, labels), file)
 
 def process_frames():
-    # Initialize capture devices within the thread
     cap = cv2.VideoCapture(0)
-    cap1 = cv2.VideoCapture(4)
-    cap2 = cv2.VideoCapture(1)
-    cap3 = cv2.VideoCapture(2)
-
     while True:
-        start_time = time.time()
+        ret, frame = cap.read()
 
-        ret, img = cap.read()
-        ret1, img1 = cap1.read()
-        ret2, img2 = cap2.read()
-        ret3, img3 = cap3.read()
-
-        if not (ret and ret1 and ret2 and ret3):
-            print("Error: Cannot read frames from cameras.")
+        if not ret:
+            print("Error: Cannot read frame from camera.")
             break
 
         # Convert images to RGB format for face recognition
-        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rgb_img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        rgb_img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-        rgb_img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
+        rgb_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Find all face locations and encodings in each frame
-        frames = [(rgb_img, img), (rgb_img1, img1), (rgb_img2, img2), (rgb_img3, img3)]
-        for rgb_frame, frame in frames:
-            face_locations = face_recognition.face_locations(rgb_frame, model='hog')  # Using HOG model
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+        face_locations = face_recognition.face_locations(rgb_img, model='hog')  # Using HOG model
+        face_encodings = face_recognition.face_encodings(rgb_img, face_locations)
 
-            # Draw boxes around faces and display names
-            draw_boxes(frame, face_encodings, face_locations)
+        # Draw boxes around faces and display names
+        draw_boxes(frame, face_encodings, face_locations)
 
-        # Combine the four images into one grid
-        top_row = np.hstack((img, img1))
-        bottom_row = np.hstack((img2, img3))
-        combined_image = np.vstack((top_row, bottom_row))
-
-        # Display the combined image
-        cv2.imshow('Webcams', combined_image)
-
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            break
-
-        frame_processing_time = time.time() - start_time
-
-    # Release the capture devices within the thread
-    cap.release()
-    cap1.release()
-    cap2.release()
-    cap3.release()
-    cv2.destroyAllWindows()
+        # Send the results back to Flutter app
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 def draw_boxes(img, encodings, locations):
+    global faces_encodings, labels
     for encodeFace, faceLoc in zip(encodings, locations):
         matches = face_recognition.compare_faces(faces_encodings, encodeFace, tolerance=0.5)  # Adjust tolerance
         faceDis = face_recognition.face_distance(faces_encodings, encodeFace)
@@ -130,9 +109,10 @@ def draw_boxes(img, encodings, locations):
                 print(f"Person: {name}, Accuracy: {accuracy}")
                 winsound.Beep(frequency, duration)
 
-# Start a separate thread for processing frames
-thread = threading.Thread(target=process_frames)
-thread.start()
+@app.route('/video_feed')
+def video_feed():
+    return Response(process_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Wait for the thread to finish
-thread.join()
+if __name__ == "__main__":
+    threading.Thread(target=process_frames).start()
+    app.run(debug=True)
